@@ -1,11 +1,16 @@
 <?php
-$username = "";
-$password = "";
+$services_json = json_decode(getenv("VCAP_SERVICES"), true);
+$mysql_config = $services_json["mysql-5.1"][0]["credentials"];
+$username = $mysql_config["username"];
+$password = $mysql_config["password"];
+$hostname = $mysql_config["hostname"];
+$port = $mysql_config["port"];
+$db = $mysql_config["name"];
 
-$secret_key = "secret_key";
+$secret_key = "secret";
 
 // Connect to db
-$dbh = new PDO('mysql:dbname=sset;host=localhost', $username, $password);
+$dbh = new PDO('mysql:dbname=' . $db . ';host=' . $hostname, $username, $password);
 $message = "";
 
 if (isset($_POST['amount']) && $_GET['key'] == $secret_key) {
@@ -32,13 +37,13 @@ if (isset($_GET['create_tables'])) {
 	exit;
 }
 
-if (isset($_GET['dump'])) {
+if (isset($_GET['dump']) && $_GET['key'] == $secret_key) {
 	// If we want to dump
 	header("Content-type: text/csv");
 	header("Content-Disposition: attachment; filename=file.csv");
 	header("Pragma: no-cache");
 	header("Expires: 0");
-	$stmt = $dbh->prepare('SELECT * FROM sset');
+	$stmt = $dbh->prepare('SELECT * FROM sset ORDER BY added ASC');
 	$stmt->execute();
 	while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 	    echo $row['name'] . ',' . $row['amount'] . ',' . $row['added'] . ";\n";
@@ -79,5 +84,42 @@ if (isset($_GET['dump'])) {
         	<input type="date" size="6" name="added" value="<?php echo date('Y-m-d');?>" />
         	<input type="submit" value="Skicka" />
         </form>
+        <br />
+        <?php
+		if ($_GET['key'] == $secret_key) {
+			// If we want to show records
+			$stmt = $dbh->prepare('SELECT * FROM sset ORDER BY added DESC');
+			$stmt->execute();
+			?>
+			<table width="100%">
+				<thead>
+					<th align="left">Typ</th>
+					<th align="left">Kostnad</th>
+					<th align="left">Tillagd</th>
+				</thead>
+				<tbody>
+				<?php
+				$total = 0;
+				while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+					$total+=$row['amount'];
+				    ?>
+				    <tr>
+				    	<td><?php echo $row['name'];?></td>
+				    	<td><?php echo $row['amount'];?></td>
+				    	<td><?php echo $row['added'];?></td>
+				    <?php
+				}
+				$stmt = null;
+				?>
+				</tbody>
+				<tfoot>
+					<th></th>
+					<th><?php echo $total;?></th>
+					<th></th>
+				</tfoot>
+			</table>
+			<?php
+		}
+		?>
     </body>
 </html>
