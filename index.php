@@ -88,7 +88,7 @@ if (isset($_GET['dump']) && $_GET['key'] == $secret_key) {
         <?php
 		if ($_GET['key'] == $secret_key) {
 			// If we want to show records
-			$stmt = $dbh->prepare('SELECT * FROM sset ORDER BY added DESC');
+			$stmt = $dbh->prepare('SELECT * FROM sset WHERE added LIKE "' . date("Y-m-") . '%" ORDER BY added DESC');
 			$stmt->execute();
 			?>
 			<table width="100%">
